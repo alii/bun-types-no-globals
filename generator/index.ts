@@ -5,12 +5,15 @@ import { Node, parseSync } from 'oxc-parser';
 import { walk } from 'oxc-walker';
 import { tempDirWithFiles } from './fs';
 
+const version = process.argv[2] ?? 'canary';
+console.log(`Using @types/bun@${version}`);
+
 using tempDir = tempDirWithFiles('bun-types-no-globals-generator', {
 	'package.json': JSON.stringify({
 		name: 'temp',
 		version: '1.0.0',
 		dependencies: {
-			'@types/bun': 'latest',
+			'bun-types': version,
 		},
 	}),
 });
@@ -18,6 +21,18 @@ using tempDir = tempDirWithFiles('bun-types-no-globals-generator', {
 const outputDir = path.join(import.meta.dirname, '..', 'lib');
 
 await $.cwd(tempDir.path)`bun install`;
+
+const installedPkgPath = path.join(tempDir.path, 'node_modules', 'bun-types', 'package.json');
+const installedPkg = await Bun.file(installedPkgPath).json();
+const installedVersion = installedPkg.version;
+console.log(`Installed bun-types version: ${installedVersion}`);
+
+// Update the package.json with the installed version
+const packageJsonPath = path.join(import.meta.dirname, '..', 'package.json');
+const packageJson = await Bun.file(packageJsonPath).json();
+packageJson.version = installedVersion;
+await Bun.write(packageJsonPath, JSON.stringify(packageJson, null, '\t') + '\n');
+console.log(`Updated package.json to version: ${installedVersion}`);
 
 await fsp.mkdir(outputDir, { recursive: true });
 
