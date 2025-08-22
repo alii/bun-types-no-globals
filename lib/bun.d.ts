@@ -1,28 +1,17 @@
-/**
- * Bun.js runtime APIs
- *
- * @example
- *
- * ```js
- * import {file} from 'bun';
- *
- * // Log the file to the console
- * const input = await file('/path/to/file.txt').text();
- * console.log(input);
- * ```
- *
- * This module aliases `globalThis.Bun`.
- */
 declare module "bun" {
 	import type { FFIFunctionCallableSymbol } from "bun:ffi";
 	import type { Encoding as CryptoEncoding } from "crypto";
+	import type { X509Certificate } from "node:crypto";
+	import type { Stats } from "node:fs";
 	import type {
 		CipherNameAndProtocol,
 		EphemeralKeyInfo,
 		PeerCertificate,
 	} from "tls";
-	import type { Stats } from "node:fs";
-	import type { X509Certificate } from "node:crypto";
+
+	type DistributedOmit<T, K extends keyof T> = T extends T ? Omit<T, K> : never;
+	type PathLike = string | NodeJS.TypedArray | ArrayBufferLike | URL;
+
 	interface Env {
 		NODE_ENV?: string;
 		/**
@@ -116,77 +105,6 @@ declare module "bun" {
 		| SpawnOptions.Readable
 		| SpawnOptions.Writable
 		| ReadableStream;
-
-	class ShellError extends Error implements ShellOutput {
-		readonly stdout: Buffer;
-		readonly stderr: Buffer;
-		readonly exitCode: number;
-
-		/**
-		 * Read from stdout as a string
-		 *
-		 * @param encoding - The encoding to use when decoding the output
-		 * @returns Stdout as a string with the given encoding
-		 * @example
-		 *
-		 * ## Read as UTF-8 string
-		 *
-		 * ```ts
-		 * const output = await $`echo hello`;
-		 * console.log(output.text()); // "hello\n"
-		 * ```
-		 *
-		 * ## Read as base64 string
-		 *
-		 * ```ts
-		 * const output = await $`echo ${atob("hello")}`;
-		 * console.log(output.text("base64")); // "hello\n"
-		 * ```
-		 *
-		 */
-		text(encoding?: BufferEncoding): string;
-
-		/**
-		 * Read from stdout as a JSON object
-		 *
-		 * @returns Stdout as a JSON object
-		 * @example
-		 *
-		 * ```ts
-		 * const output = await $`echo '{"hello": 123}'`;
-		 * console.log(output.json()); // { hello: 123 }
-		 * ```
-		 *
-		 */
-		json(): any;
-
-		/**
-		 * Read from stdout as an ArrayBuffer
-		 *
-		 * @returns Stdout as an ArrayBuffer
-		 * @example
-		 *
-		 * ```ts
-		 * const output = await $`echo hello`;
-		 * console.log(output.arrayBuffer()); // ArrayBuffer { byteLength: 6 }
-		 * ```
-		 */
-		arrayBuffer(): ArrayBuffer;
-
-		/**
-		 * Read from stdout as a Blob
-		 *
-		 * @returns Stdout as a blob
-		 * @example
-		 * ```ts
-		 * const output = await $`echo hello`;
-		 * console.log(output.blob()); // Blob { size: 6, type: "" }
-		 * ```
-		 */
-		blob(): Blob;
-
-		bytes(): Uint8Array;
-	}
 
 	class ShellPromise extends Promise<ShellOutput> {
 		get stdin(): WritableStream;
@@ -307,11 +225,15 @@ declare module "bun" {
 		new (): Shell;
 	}
 
+	type ShellError = _ShellError;
+
 	export interface Shell {
 		(
 			strings: TemplateStringsArray,
 			...expressions: ShellExpression[]
 		): ShellPromise;
+
+		readonly ShellError: typeof _ShellError;
 
 		/**
 		 * Perform bash-like brace expansion on the given pattern.
@@ -2353,10 +2275,74 @@ declare module "bun" {
 	 */
 	interface SavepointSQL extends SQL {}
 
+	type CSRFAlgorithm =
+		| "blake2b256"
+		| "blake2b512"
+		| "sha256"
+		| "sha384"
+		| "sha512"
+		| "sha512-256";
+	interface CSRFGenerateOptions {
+		/**
+		 * The number of milliseconds until the token expires. 0 means the token never expires.
+		 * @default 24 * 60 * 60 * 1000 (24 hours)
+		 */
+		expiresIn?: number;
+		/**
+		 * The encoding of the token.
+		 * @default "base64url"
+		 */
+		encoding?: "base64" | "base64url" | "hex";
+		/**
+		 * The algorithm to use for the token.
+		 * @default "sha256"
+		 */
+		algorithm?: CSRFAlgorithm;
+	}
+
+	interface CSRFVerifyOptions {
+		/**
+		 * The secret to use for the token. If not provided, a random default secret will be generated in memory and used.
+		 */
+		secret?: string;
+		/**
+		 * The encoding of the token.
+		 * @default "base64url"
+		 */
+		encoding?: "base64" | "base64url" | "hex";
+		/**
+		 * The algorithm to use for the token.
+		 * @default "sha256"
+		 */
+		algorithm?: CSRFAlgorithm;
+		/**
+		 * The number of milliseconds until the token expires. 0 means the token never expires.
+		 * @default 24 * 60 * 60 * 1000 (24 hours)
+		 */
+		maxAge?: number;
+	}
+	interface CSRF {
+		/**
+		 * Generate a CSRF token.
+		 * @param secret The secret to use for the token. If not provided, a random default secret will be generated in memory and used.
+		 * @param options The options for the token.
+		 * @returns The generated token.
+		 */
+		generate(secret?: string, options?: CSRFGenerateOptions): string;
+		/**
+		 * Verify a CSRF token.
+		 * @param token The token to verify.
+		 * @param options The options for the token.
+		 * @returns True if the token is valid, false otherwise.
+		 */
+		verify(token: string, options?: CSRFVerifyOptions): boolean;
+	}
+
 	var sql: SQL;
 	var postgres: SQL;
 	var SQL: SQL;
 
+	var CSRF: CSRF;
 	/**
 	 *   This lets you use macros as regular imports
 	 *   @example
@@ -2684,9 +2670,15 @@ declare module "bun" {
 		kind: ImportKind;
 	}
 
+	/**
+	 * @see [Bun.build API docs](https://bun.sh/docs/bundler#api)
+	 */
 	interface BuildConfig {
 		entrypoints: string[]; // list of file path
 		outdir?: string; // output directory
+		/**
+		 * @default "browser"
+		 */
 		target?: Target; // default: "browser"
 		/**
 		 * Output module format. Top-level await is only supported for `"esm"`.
@@ -2730,7 +2722,25 @@ declare module "bun" {
 		define?: Record<string, string>;
 		// origin?: string; // e.g. http://mydomain.com
 		loader?: { [k in string]: Loader };
-		sourcemap?: "none" | "linked" | "inline" | "external" | "linked" | boolean; // default: "none", true -> "inline"
+		/**
+		 * Specifies if and how to generate source maps.
+		 *
+		 * - `"none"` - No source maps are generated
+		 * - `"linked"` - A separate `*.ext.map` file is generated alongside each
+		 *   `*.ext` file. A `//# sourceMappingURL` comment is added to the output
+		 *   file to link the two. Requires `outdir` to be set.
+		 * - `"inline"` - an inline source map is appended to the output file.
+		 * - `"external"` - Generate a separate source map file for each input file.
+		 *   No `//# sourceMappingURL` comment is added to the output file.
+		 *
+		 * `true` and `false` are aliasees for `"inline"` and `"none"`, respectively.
+		 *
+		 * @default "none"
+		 *
+		 * @see {@link outdir} required for `"linked"` maps
+		 * @see {@link publicPath} to customize the base url of linked source maps
+		 */
+		sourcemap?: "none" | "linked" | "inline" | "external" | "linked" | boolean;
 		/**
 		 * package.json `exports` conditions used when resolving imports
 		 *
@@ -2759,6 +2769,14 @@ declare module "bun" {
 		 * ```
 		 */
 		env?: "inline" | "disable" | `${string}*`;
+		/**
+		 * Whether to enable minification.
+		 *
+		 * Use `true`/`false` to enable/disable all minification options. Alternatively,
+		 * you can pass an object for granular control over certain minifications.
+		 *
+		 * @default false
+		 */
 		minify?:
 			| boolean
 			| {
@@ -4092,13 +4110,14 @@ declare module "bun" {
 
 	interface TLSWebSocketServeOptions<WebSocketDataType = undefined>
 		extends WebSocketServeOptions<WebSocketDataType>,
-			TLSOptions {
+			TLSOptionsAsDeprecated {
 		unix?: never;
 		tls?: TLSOptions | TLSOptions[];
 	}
+
 	interface UnixTLSWebSocketServeOptions<WebSocketDataType = undefined>
 		extends UnixWebSocketServeOptions<WebSocketDataType>,
-			TLSOptions {
+			TLSOptionsAsDeprecated {
 		/**
 		 * If set, the HTTP server will listen on a unix socket instead of a port.
 		 * (Cannot be used with hostname+port)
@@ -4106,6 +4125,7 @@ declare module "bun" {
 		unix: string;
 		tls?: TLSOptions | TLSOptions[];
 	}
+
 	interface ErrorLike extends Error {
 		code?: string;
 		errno?: number;
@@ -4200,11 +4220,146 @@ declare module "bun" {
 		secureOptions?: number | undefined; // Value is a numeric bitmask of the `SSL_OP_*` options
 	}
 
-	interface TLSServeOptions extends ServeOptions, TLSOptions {
+	// Note for contributors: TLSOptionsAsDeprecated should be considered immutable
+	// and new TLS option keys should only be supported on the `.tls` property (which comes
+	// from the TLSOptions interface above).
+	/**
+	 * This exists because Bun.serve() extends the TLSOptions object, but
+	 * they're now considered deprecated. You should be passing the
+	 * options on `.tls` instead.
+	 *
+	 * @example
+	 * ```ts
+	 * //// OLD ////
+	 * Bun.serve({
+	 *   fetch: () => new Response("Hello World"),
+	 *   passphrase: "secret",
+	 * });
+	 *
+	 * //// NEW ////
+	 * Bun.serve({
+	 *   fetch: () => new Response("Hello World"),
+	 *   tls: {
+	 *     passphrase: "secret",
+	 *   },
+	 * });
+	 * ```
+	 */
+	interface TLSOptionsAsDeprecated {
+		/**
+		 * Passphrase for the TLS key
+		 *
+		 * @deprecated Use `.tls.passphrase` instead
+		 */
+		passphrase?: string;
+
+		/**
+		 * File path to a .pem file custom Diffie Helman parameters
+		 *
+		 * @deprecated Use `.tls.dhParamsFile` instead
+		 */
+		dhParamsFile?: string;
+
+		/**
+		 * Explicitly set a server name
+		 *
+		 * @deprecated Use `.tls.serverName` instead
+		 */
+		serverName?: string;
+
+		/**
+		 * This sets `OPENSSL_RELEASE_BUFFERS` to 1.
+		 * It reduces overall performance but saves some memory.
+		 * @default false
+		 *
+		 * @deprecated Use `.tls.lowMemoryMode` instead
+		 */
+		lowMemoryMode?: boolean;
+
+		/**
+		 * If set to `false`, any certificate is accepted.
+		 * Default is `$NODE_TLS_REJECT_UNAUTHORIZED` environment variable, or `true` if it is not set.
+		 *
+		 * @deprecated Use `.tls.rejectUnauthorized` instead
+		 */
+		rejectUnauthorized?: boolean;
+
+		/**
+		 * If set to `true`, the server will request a client certificate.
+		 *
+		 * Default is `false`.
+		 *
+		 * @deprecated Use `.tls.requestCert` instead
+		 */
+		requestCert?: boolean;
+
+		/**
+		 * Optionally override the trusted CA certificates. Default is to trust
+		 * the well-known CAs curated by Mozilla. Mozilla's CAs are completely
+		 * replaced when CAs are explicitly specified using this option.
+		 *
+		 * @deprecated Use `.tls.ca` instead
+		 */
+		ca?:
+			| string
+			| Buffer
+			| BunFile
+			| Array<string | Buffer | BunFile>
+			| undefined;
+		/**
+		 *  Cert chains in PEM format. One cert chain should be provided per
+		 *  private key. Each cert chain should consist of the PEM formatted
+		 *  certificate for a provided private key, followed by the PEM
+		 *  formatted intermediate certificates (if any), in order, and not
+		 *  including the root CA (the root CA must be pre-known to the peer,
+		 *  see ca). When providing multiple cert chains, they do not have to
+		 *  be in the same order as their private keys in key. If the
+		 *  intermediate certificates are not provided, the peer will not be
+		 *  able to validate the certificate, and the handshake will fail.
+		 *
+		 * @deprecated Use `.tls.cert` instead
+		 */
+		cert?:
+			| string
+			| Buffer
+			| BunFile
+			| Array<string | Buffer | BunFile>
+			| undefined;
+		/**
+		 * Private keys in PEM format. PEM allows the option of private keys
+		 * being encrypted. Encrypted keys will be decrypted with
+		 * options.passphrase. Multiple keys using different algorithms can be
+		 * provided either as an array of unencrypted key strings or buffers,
+		 * or an array of objects in the form {pem: <string|buffer>[,
+		 * passphrase: <string>]}. The object form can only occur in an array.
+		 * object.passphrase is optional. Encrypted keys will be decrypted with
+		 * object.passphrase if provided, or options.passphrase if it is not.
+		 *
+		 * @deprecated Use `.tls.key` instead
+		 */
+		key?:
+			| string
+			| Buffer
+			| BunFile
+			| Array<string | Buffer | BunFile>
+			| undefined;
+		/**
+		 * Optionally affect the OpenSSL protocol behavior, which is not
+		 * usually necessary. This should be used carefully if at all! Value is
+		 * a numeric bitmask of the SSL_OP_* options from OpenSSL Options
+		 *
+		 * @deprecated `Use .tls.secureOptions` instead
+		 */
+		secureOptions?: number | undefined; // Value is a numeric bitmask of the `SSL_OP_*` options
+	}
+
+	interface TLSServeOptions extends ServeOptions, TLSOptionsAsDeprecated {
 		tls?: TLSOptions | TLSOptions[];
 	}
 
-	interface UnixTLSServeOptions extends UnixServeOptions, TLSOptions {
+	interface UnixTLSServeOptions
+		extends UnixServeOptions,
+			TLSOptionsAsDeprecated {
 		tls?: TLSOptions | TLSOptions[];
 	}
 
@@ -4672,7 +4827,7 @@ declare module "bun" {
 		R extends { [K in keyof R]: RouterTypes.RouteValue<K & string> },
 	>(
 		options: (
-			| (Omit<ServeOptions, "fetch"> & {
+			| (DistributedOmit<Serve, "fetch"> & {
 					routes: R;
 					fetch?: (
 						this: Server,
@@ -4680,7 +4835,7 @@ declare module "bun" {
 						server: Server,
 					) => Response | Promise<Response>;
 			  })
-			| (Omit<ServeOptions, "routes"> & {
+			| (DistributedOmit<Serve, "routes"> & {
 					routes?: never;
 					fetch: (
 						this: Server,
@@ -4691,7 +4846,7 @@ declare module "bun" {
 			| WebSocketServeOptions<T>
 		) & {
 			/**
-			 * @deprecated Use `routes` instead in new code. This will continue to work for awhile though.
+			 * @deprecated Use `routes` instead in new code. This will continue to work for a while though.
 			 */
 			static?: R;
 		},
@@ -5122,7 +5277,7 @@ declare module "bun" {
 	 */
 	function openInEditor(path: string, options?: EditorOptions): void;
 
-	const fetch: typeof globalThis.fetch & {
+	var fetch: typeof globalThis.fetch & {
 		preconnect(url: string): void;
 	};
 
@@ -5886,13 +6041,15 @@ declare module "bun" {
 		 *
 		 * If unspecified, it is assumed that the plugin is compatible with all targets.
 		 *
-		 * This field is not read by Bun.plugin
+		 * This field is not read by {@link Bun.plugin}
 		 */
 		target?: Target;
 		/**
 		 * A function that will be called when the plugin is loaded.
 		 *
-		 * This function may be called in the same tick that it is registered, or it may be called later. It could potentially be called multiple times for different targets.
+		 * This function may be called in the same tick that it is registered, or it
+		 * may be called later. It could potentially be called multiple times for
+		 * different targets.
 		 */
 		setup(
 			/**
