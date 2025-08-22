@@ -1,4 +1,4 @@
-// Type definitions for bun 1.0.5
+// Type definitions for bun 1.0.6
 // Project: https://github.com/oven-sh/bun
 // Definitions by: Jarred Sumner <https://github.com/Jarred-Sumner>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
