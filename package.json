@@ -1,6 +1,6 @@
 {
 	"name": "bun-types-no-globals",
-	"version": "1.2.21-canary.20250811T140726",
+	"version": "1.2.21-canary.20250812T140642",
 	"main": "./generator/index.ts",
 	"types": "./lib/index.d.ts",
 	"license": "MIT",
