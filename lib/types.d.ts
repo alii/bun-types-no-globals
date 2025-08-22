@@ -1,4 +1,4 @@
-// Type definitions for bun 1.0.2
+// Type definitions for bun 1.0.3
 // Project: https://github.com/oven-sh/bun
 // Definitions by: Jarred Sumner <https://github.com/Jarred-Sumner>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
@@ -1042,7 +1042,6 @@
   //  */
   // export function callback(ffi: FFIFunction, cb: Function): number;
 // ./globals.d.ts
-// import * as tls from 'node:tls';
 // type WorkerListener = (worker: Worker) => void;
   // tslint:disable-next-line:unified-signatures
   // argv?: any[] | undefined;
@@ -7979,6 +7978,10 @@ declare module "bun" {
   export function write(
     destination: BunFile | PathLike,
     input: Blob | TypedArray | ArrayBufferLike | string | BlobPart[],
+    options?: {
+      /** If writing to a PathLike, set the permissions of the file. */
+      mode?: number;
+    },
   ): Promise<number>;
 
   /**
@@ -10032,7 +10035,7 @@ declare module "bun" {
      * });
      *
      * // Update the server to return a different response
-     * server.update({
+     * server.reload({
      *   fetch(request) {
      *     return new Response("Hello World v2")
      *   }
@@ -16843,7 +16846,7 @@ declare module "bun:test" {
   export function spyOn<T extends object, K extends keyof T>(
     obj: T,
     methodOrPropertyValue: K,
-  ): Mock<() => T[K]>;
+  ): Mock<T[K] extends AnyFunction ? T[K] : never>;
 
   /**
    * Describes a group of related tests.
@@ -16903,18 +16906,18 @@ declare module "bun:test" {
      *
      * @param table Array of Arrays with the arguments that are passed into the test fn for each row.
      */
-    each<T extends ReadonlyArray<unknown>>(
-      table: ReadonlyArray<T>,
+    each<T extends Readonly<Readonly<[any, ...any[]]>[]>>(
+      table: T,
     ): (
       label: string,
-      fn: (...args: T) => void | Promise<unknown>,
+      fn: (...args: Readonly<T>[number]) => void | Promise<unknown>,
       options?: number | TestOptions,
     ) => void;
-    each<T>(
+    each<T extends Array<any>>(
       table: ReadonlyArray<T>,
     ): (
       label: string,
-      fn: (arg: T) => void | Promise<unknown>,
+      fn: (...args: Readonly<T>) => void | Promise<unknown>,
       options?: number | TestOptions,
     ) => void;
   };
@@ -17148,18 +17151,18 @@ declare module "bun:test" {
      *
      * @param table Array of Arrays with the arguments that are passed into the test fn for each row.
      */
-    each<T extends ReadonlyArray<unknown>>(
-      table: ReadonlyArray<T>,
+    each<T extends Readonly<Readonly<[any, ...any[]]>[]>>(
+      table: T,
     ): (
       label: string,
-      fn: (...args: T) => void | Promise<unknown>,
+      fn: (...args: Readonly<T>[number]) => void | Promise<unknown>,
       options?: number | TestOptions,
     ) => void;
-    each<T>(
+    each<T extends Array<any>>(
       table: ReadonlyArray<T>,
     ): (
       label: string,
-      fn: (arg: T, done: (err?: unknown) => void) => void | Promise<unknown>,
+      fn: (...args: Readonly<T>) => void | Promise<unknown>,
       options?: number | TestOptions,
     ) => void;
   };
