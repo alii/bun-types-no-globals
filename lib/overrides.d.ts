@@ -5,14 +5,17 @@ declare module "stream/web" {
      * Consume a ReadableStream as text
      */
     text(): Promise<string>;
+
     /**
      * Consume a ReadableStream as a Uint8Array
      */
-    bytes(): Promise<Uint8Array>;
+    bytes(): Promise<Uint8Array<ArrayBuffer>>;
+
     /**
      * Consume a ReadableStream as JSON
      */
     json(): Promise<any>;
+
     /**
      * Consume a ReadableStream as a Blob
      */
