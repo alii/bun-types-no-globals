@@ -4422,7 +4422,7 @@ declare module "bun" {
 						Writable extends In ? "ignore" : In,
 						Readable extends Out ? "pipe" : Out,
 						Readable extends Err ? "inherit" : Err
-				  >
+					>
 				: Subprocess<Writable, Readable, Readable>;
 
 		type OptionsToSyncSubprocess<Opts extends OptionsObject> =
@@ -4430,7 +4430,7 @@ declare module "bun" {
 				? SyncSubprocess<
 						Readable extends Out ? "pipe" : Out,
 						Readable extends Err ? "pipe" : Err
-				  >
+					>
 				: SyncSubprocess<Readable, Readable>;
 
 		type ReadableIO = ReadableStream<Uint8Array> | number | undefined;
@@ -4438,8 +4438,8 @@ declare module "bun" {
 		type ReadableToIO<X extends Readable> = X extends "pipe" | undefined
 			? ReadableStream<Uint8Array>
 			: X extends BunFile | ArrayBufferView | number
-			  ? number
-			  : undefined;
+				? number
+				: undefined;
 
 		type ReadableToSyncIO<X extends Readable> = X extends "pipe" | undefined
 			? Buffer
@@ -4450,8 +4450,8 @@ declare module "bun" {
 		type WritableToIO<X extends Writable> = X extends "pipe"
 			? FileSink
 			: X extends BunFile | ArrayBufferView | Blob | Request | Response | number
-			  ? number
-			  : undefined;
+				? number
+				: undefined;
 	}
 
 	interface ResourceUsage {
@@ -4936,34 +4936,6 @@ declare module "bun" {
 		buffer: ArrayBufferView | ArrayBufferLike,
 		offset?: number,
 	): number;
-
-	/**
-	 * Provides a higher level API for command-line argument parsing than interacting
-	 * with `process.argv` directly. Takes a specification for the expected arguments
-	 * and returns a structured object with the parsed options and positionals.
-	 *
-	 * ```js
-	 * const args = ['-f', '--bar', 'b'];
-	 * const options = {
-	 *   foo: {
-	 *     type: 'boolean',
-	 *     short: 'f',
-	 *   },
-	 *   bar: {
-	 *     type: 'string',
-	 *   },
-	 * };
-	 * const {
-	 *   values,
-	 *   positionals,
-	 * } = Bun.parseArgs({ args, options });
-	 * console.log(values, positionals);
-	 * // Prints: { foo: true, bar: 'b' } []
-	 * ```
-	 * @param config Used to provide arguments for parsing and to configure the parser.
-	 * @return The parsed command line arguments
-	 */
-	const parseArgs: typeof import("util").parseArgs;
 
 	interface GlobScanOptions {
 		/**
