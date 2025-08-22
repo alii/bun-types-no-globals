@@ -1,15 +1,7 @@
-export {};
-import type { MessagePort } from "worker_threads";
+import { S3FileOptions } from "bun";
 import type {
-	TextEncoder as NodeTextEncoder,
 	TextDecoder as NodeTextDecoder,
+	TextEncoder as NodeTextEncoder,
 } from "util";
+import type { MessagePort } from "worker_threads";
 import type { WebSocket as _WebSocket } from "ws";
-declare module "*.txt" {
-	var text: string;
-	export = text;
-}
-declare module "*.toml" {
-	var contents: any;
-	export = contents;
-}

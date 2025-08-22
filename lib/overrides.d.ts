@@ -1,5 +1,5 @@
 export {};
-import type { Env, PathLike, BunFile } from "bun";
+import type { BunFile, Env, PathLike } from "bun";
 declare module "fs/promises" {
 	function exists(path: PathLike): Promise<boolean>;
 }
