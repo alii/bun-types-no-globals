@@ -1,0 +1,22 @@
+{
+	"name": "bun-types-no-globals",
+	"version": "0.0.0-beta.1",
+	"main": "./generator/index.ts",
+	"types": "./lib/index.d.ts",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/alii/bun-types-no-globals"
+	},
+	"files": [
+		"lib",
+		"package.json"
+	],
+	"devDependencies": {
+		"@types/bun": "latest",
+		"prettier": "^3.6.2",
+		"typescript": "^5.9.2",
+		"oxc-parser": "^0.82.3",
+		"oxc-walker": "^0.4.0"
+	}
+}
