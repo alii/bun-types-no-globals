@@ -84,6 +84,23 @@ jobs:
             
             git push
             
+            echo "Creating git tag: v$VERSION"
+            git tag "v$VERSION" -m "Release v$VERSION"
+            git push origin "v$VERSION"
+            
+            echo "Creating GitHub release for v$VERSION"
+            if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              gh release create "v$VERSION" \
+                --title "v$VERSION" \
+                --notes "Automated release of bun-types-no-globals v$VERSION" \
+                --latest
+            else
+              gh release create "v$VERSION" \
+                --title "v$VERSION" \
+                --notes "Automated pre-release of bun-types-no-globals v$VERSION" \
+                --prerelease
+            fi
+            
             echo "Publishing $VERSION to npm with tag: $PUBLISH_TAG"
             bun publish --tag="$PUBLISH_TAG" --access public
             
