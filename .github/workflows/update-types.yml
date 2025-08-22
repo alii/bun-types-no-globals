@@ -84,8 +84,8 @@ jobs:
             
             git push
             
-            echo "Publishing $VERSION to npm with tag: $PUBLISH_TAG (DRY RUN)"
-            bun publish --tag="$PUBLISH_TAG" --access public --dry-run
+            echo "Publishing $VERSION to npm with tag: $PUBLISH_TAG"
+            bun publish --tag="$PUBLISH_TAG" --access public
             
             echo "Successfully processed $VERSION"
           done
