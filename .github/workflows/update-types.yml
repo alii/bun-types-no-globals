@@ -2,48 +2,84 @@ name: Update Bun Types
 
 on:
   schedule:
-    # Run daily at 00:00 UTC
-    - cron: '0 0 * * *'
-  workflow_dispatch: # Allow manual trigger
+    - cron: '0 0 * * *' # daily at 00:00 UTC
+  workflow_dispatch:
 
 jobs:
   update-types:
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: write
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      
+
       - name: Install dependencies
         run: bun install
-      
-      - name: Run generator script
-        run: bun run generator/index.ts
-      
-      - name: Check for changes
-        id: check_changes
-        run: |
-          if git diff --quiet lib/; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-          else
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Commit and push changes
-        if: steps.check_changes.outputs.has_changes == 'true'
+
+      - name: Process missing versions
+        env:
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add lib/
-          git commit -m "chore: update bun types [automated]"
-          git push
+
+          echo "Fetching all @types/bun versions..."
+          BUN_TYPES_VERSIONS=$(npm view @types/bun versions --json | jq -r '.[]')
+
+          echo "Fetching all bun-types-no-globals versions..."
+          OUR_VERSIONS=$(npm view bun-types-no-globals versions --json 2>/dev/null | jq -r '.[]' || echo "")
+
+          MISSING_VERSIONS=""
+          for VERSION in $BUN_TYPES_VERSIONS; do
+            if ! echo "$OUR_VERSIONS" | grep -q "^$VERSION$"; then
+              MISSING_VERSIONS="$MISSING_VERSIONS $VERSION"
+            fi
+          done
+
+          if [ -z "$MISSING_VERSIONS" ]; then
+            echo "No missing versions to publish"
+            exit 0
+          fi
+
+          echo "Missing versions to publish:$MISSING_VERSIONS"
+
+          for VERSION in $MISSING_VERSIONS; do
+            echo ""
+            echo "Processing version: $VERSION"
+            
+            if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              INSTALL_TAG="$VERSION"
+              PUBLISH_TAG="latest"
+              echo "This is a stable release"
+            else
+              INSTALL_TAG="$VERSION"
+              PUBLISH_TAG="canary"
+              echo "This is a pre-release/canary version"
+            fi
+            
+            echo "Running generator for $VERSION..."
+            bun run generator/index.ts "$INSTALL_TAG"
+            
+            git add lib/ package.json
+            git commit -m "chore: update bun types to v$VERSION [automated]" || {
+              echo "No changes to commit for $VERSION"
+              continue
+            }
+            
+            git push
+            
+            echo "Publishing $VERSION to npm with tag: $PUBLISH_TAG (DRY RUN)"
+            bun publish --tag="$PUBLISH_TAG" --access public --dry-run
+            
+            echo "Successfully processed $VERSION"
+          done
