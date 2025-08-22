@@ -1,4 +1,4 @@
-// Type definitions for bun 1.0.11
+// Type definitions for bun 1.0.12
 // Project: https://github.com/oven-sh/bun
 // Definitions by: Jarred Sumner <https://github.com/Jarred-Sumner>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
@@ -1386,8 +1386,6 @@
     // setServers: typeof setServers;
 // ./constants.d.ts
 // ./util.d.ts
-  // FIXME: util.formatWithOptions is typed, but is not defined in the polyfill
-  // export function formatWithOptions(inspectOptions: InspectOptions, format?: any, ...param: any[]): string;
   // FIXME: util.getSystemErrorName is typed, but is not defined in the polyfill
   // export function getSystemErrorName(err: number): string;
   // FIXME: util.getSystemErrorMap is typed, but is not defined in the polyfill
@@ -8950,6 +8948,10 @@ declare module "bun:test" {
      * added to existing import statements. This is due to how ESM works.
      */
     module(id: string, factory: () => any): void | Promise<void>;
+    /**
+     * Restore the previous value of mocks.
+     */
+    restore(): void;
   };
 
   /**
@@ -9405,6 +9407,30 @@ declare module "bun:test" {
     anything: () => Expect;
     stringContaining: (str: string) => Expect<string>;
     stringMatching: <T extends RegExp | string>(regex: T) => Expect<T>;
+
+    /**
+     * Throw an error if this function is called.
+     *
+     * @param msg Optional message to display if the test fails
+     * @returns never
+     *
+     * @example
+     * ## Example
+     *
+     * ```ts
+     * import { expect, test } from "bun:test";
+     *
+     * test("!!abc!! is not a module", () => {
+     *  try {
+     *     require("!!abc!!");
+     *     expect.unreachable();
+     *  } catch(e) {
+     *     expect(e.name).not.toBe("UnreachableError");
+     *  }
+     * });
+     * ```
+     */
+    unreachable(msg?: string | Error): never;
   };
   /**
    * Asserts that a value matches some criteria.
@@ -9654,14 +9680,14 @@ declare module "bun:test" {
      */
     toBeNull(): void;
     /**
-     * Asserts that a value can be coerced to `NaN`.
+     * Asserts that a value is `NaN`.
      *
      * Same as using `Number.isNaN()`.
      *
      * @example
      * expect(NaN).toBeNaN();
-     * expect(Infinity).toBeNaN();
-     * expect("notanumber").toBeNaN();
+     * expect(Infinity).toBeNaN(); // fail
+     * expect("notanumber").toBeNaN(); // fail
      */
     toBeNaN(): void;
     /**
@@ -21666,6 +21692,11 @@ declare module "util" {
    * // when printed to a terminal.
    * ```
    */
+  export function formatWithOptions(
+    inspectOptions: InspectOptions,
+    format?: any,
+    ...param: any[]
+  ): string;
   /**
    * Returns the string name for a numeric error code that comes from a Node.js API.
    * The mapping between error codes and error names is platform-dependent.
@@ -33968,6 +33999,8 @@ declare module "bun" {
      * How many {@link ServerWebSocket}s are in-flight right now?
      */
     readonly pendingWebSockets: number;
+
+    readonly url: URL;
 
     readonly port: number;
     /**
