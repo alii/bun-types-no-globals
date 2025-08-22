@@ -2494,7 +2494,7 @@ declare module "bun" {
 		extends WebSocketServeOptions<WebSocketDataType>,
 			TLSOptions {
 		unix?: never;
-		tls?: TLSOptions;
+		tls?: TLSOptions | Array<TLSOptions>;
 	}
 	interface UnixTLSWebSocketServeOptions<WebSocketDataType = undefined>
 		extends UnixWebSocketServeOptions<WebSocketDataType>,
@@ -2504,7 +2504,7 @@ declare module "bun" {
 		 * (Cannot be used with hostname+port)
 		 */
 		unix: string;
-		tls?: TLSOptions;
+		tls?: TLSOptions | Array<TLSOptions>;
 	}
 	interface ErrorLike extends Error {
 		code?: string;
@@ -2588,23 +2588,11 @@ declare module "bun" {
 	}
 
 	interface TLSServeOptions extends ServeOptions, TLSOptions {
-		/**
-		 *  The keys are [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) hostnames.
-		 *  The values are SSL options objects.
-		 */
-		serverNames?: Record<string, TLSOptions>;
-
-		tls?: TLSOptions;
+		tls?: TLSOptions | Array<TLSOptions>;
 	}
 
 	interface UnixTLSServeOptions extends UnixServeOptions, TLSOptions {
-		/**
-		 *  The keys are [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) hostnames.
-		 *  The values are SSL options objects.
-		 */
-		serverNames?: Record<string, TLSOptions>;
-
-		tls?: TLSOptions;
+		tls?: TLSOptions | Array<TLSOptions>;
 	}
 
 	interface SocketAddress {
@@ -3181,6 +3169,7 @@ declare module "bun" {
 
 	type SupportedCryptoAlgorithms =
 		| "blake2b256"
+		| "blake2b512"
 		| "md4"
 		| "md5"
 		| "ripemd160"
@@ -3189,7 +3178,13 @@ declare module "bun" {
 		| "sha256"
 		| "sha384"
 		| "sha512"
-		| "sha512-256";
+		| "sha512-224"
+		| "sha512-256"
+		| "sha3-224"
+		| "sha3-256"
+		| "sha3-384"
+		| "sha3-512";
+
 	/**
 	 * Hardware-accelerated cryptographic hash functions
 	 *
