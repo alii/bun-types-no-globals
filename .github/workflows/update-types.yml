@@ -33,18 +33,26 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          echo "Fetching all @types/bun versions..."
-          BUN_TYPES_VERSIONS=$(npm view @types/bun versions --json | jq -r '.[]')
+          echo "Fetching current canary version..."
+          CANARY_VERSION=$(bun info @types/bun@canary version --json | jq -r '.')
+          echo "Current @types/bun canary: $CANARY_VERSION"
+
+          echo "Fetching all stable @types/bun versions..."
+          STABLE_VERSIONS=$(bun info @types/bun versions --json | jq -r '.[]')
 
           echo "Fetching all bun-types-no-globals versions..."
-          OUR_VERSIONS=$(npm view bun-types-no-globals versions --json 2>/dev/null | jq -r '.[]' || echo "")
+          OUR_VERSIONS=$(bun info bun-types-no-globals versions --json 2>/dev/null | jq -r '.[]' || echo "")
 
           MISSING_VERSIONS=""
-          for VERSION in $BUN_TYPES_VERSIONS; do
+          for VERSION in $STABLE_VERSIONS; do
             if ! echo "$OUR_VERSIONS" | grep -q "^$VERSION$"; then
               MISSING_VERSIONS="$MISSING_VERSIONS $VERSION"
             fi
           done
+
+          if ! echo "$OUR_VERSIONS" | grep -q "^$CANARY_VERSION$"; then
+            MISSING_VERSIONS="$MISSING_VERSIONS $CANARY_VERSION"
+          fi
 
           if [ -z "$MISSING_VERSIONS" ]; then
             echo "No missing versions to publish"
