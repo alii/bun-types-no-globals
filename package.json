@@ -1,6 +1,6 @@
 {
 	"name": "bun-types-no-globals",
-	"version": "1.2.18",
+	"version": "1.2.19",
 	"main": "./generator/index.ts",
 	"types": "./lib/index.d.ts",
 	"license": "MIT",
