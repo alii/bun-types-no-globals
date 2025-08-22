@@ -27,7 +27,6 @@ const installedPkg = await Bun.file(installedPkgPath).json();
 const installedVersion = installedPkg.version;
 console.log(`Installed bun-types version: ${installedVersion}`);
 
-// Update the package.json with the installed version
 const packageJsonPath = path.join(import.meta.dirname, '..', 'package.json');
 const packageJson = await Bun.file(packageJsonPath).json();
 packageJson.version = installedVersion;
