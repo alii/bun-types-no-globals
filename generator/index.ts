@@ -6,7 +6,7 @@ import { walk } from 'oxc-walker';
 import { tempDirWithFiles } from './fs';
 
 const version = process.argv[2] ?? 'canary';
-console.log(`Using @types/bun@${version}`);
+console.log(`Using bun-types@${version}`);
 
 using tempDir = tempDirWithFiles('bun-types-no-globals-generator', {
 	'package.json': JSON.stringify({

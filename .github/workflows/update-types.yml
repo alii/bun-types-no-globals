@@ -33,53 +33,51 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          echo "Fetching current canary version..."
-          CANARY_VERSION=$(bun info @types/bun@canary version --json | jq -r '.')
-          echo "Current @types/bun canary: $CANARY_VERSION"
+          echo "Getting current version from package.json..."
+          CURRENT_VERSION=$(cat package.json | jq -r '.version')
+          echo "Current package version: $CURRENT_VERSION"
 
-          echo "Fetching all stable @types/bun versions..."
-          STABLE_VERSIONS=$(bun info @types/bun versions --json | jq -r '.[]')
+          echo "Fetching all bun-types versions..."
+          ALL_VERSIONS=$(bun info bun-types versions --json | jq -r '.[]')
 
-          echo "Fetching all bun-types-no-globals versions..."
-          OUR_VERSIONS=$(bun info bun-types-no-globals versions --json 2>/dev/null | jq -r '.[]' || echo "")
+          echo "Finding versions newer than $CURRENT_VERSION..."
+          NEW_VERSIONS=""
+          FOUND_CURRENT=false
 
-          MISSING_VERSIONS=""
-          for VERSION in $STABLE_VERSIONS; do
-            if ! echo "$OUR_VERSIONS" | grep -q "^$VERSION$"; then
-              MISSING_VERSIONS="$MISSING_VERSIONS $VERSION"
+          for VERSION in $ALL_VERSIONS; do
+            if [ "$FOUND_CURRENT" = true ]; then
+              NEW_VERSIONS="$NEW_VERSIONS $VERSION"
+            fi
+            if [ "$VERSION" = "$CURRENT_VERSION" ]; then
+              FOUND_CURRENT=true
+              echo "Found current version in list, will process all versions after this"
             fi
           done
 
-          if ! echo "$OUR_VERSIONS" | grep -q "^$CANARY_VERSION$"; then
-            MISSING_VERSIONS="$MISSING_VERSIONS $CANARY_VERSION"
-          fi
-
-          if [ -z "$MISSING_VERSIONS" ]; then
-            echo "No missing versions to publish"
+          if [ -z "$NEW_VERSIONS" ]; then
+            echo "No new versions to publish"
             exit 0
           fi
 
-          echo "Missing versions to publish:$MISSING_VERSIONS"
+          echo "New versions to publish:$NEW_VERSIONS"
 
-          for VERSION in $MISSING_VERSIONS; do
+          for VERSION in $NEW_VERSIONS; do
             echo ""
             echo "Processing version: $VERSION"
             
             if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              INSTALL_TAG="$VERSION"
               PUBLISH_TAG="latest"
               echo "This is a stable release"
             else
-              INSTALL_TAG="$VERSION"
               PUBLISH_TAG="canary"
               echo "This is a pre-release/canary version"
             fi
             
             echo "Running generator for $VERSION..."
-            bun run generator/index.ts "$INSTALL_TAG"
+            bun run generator/index.ts "$VERSION"
             
             git add lib/ package.json
-            git commit -m "chore: update bun types to v$VERSION [automated]" || {
+            git commit -m "update bun types to v$VERSION [automated]" || {
               echo "No changes to commit for $VERSION"
               continue
             }
