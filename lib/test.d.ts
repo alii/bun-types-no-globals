@@ -1,6 +1,8 @@
 declare module "bun:test" {
   /**
    * -- Mocks --
+   *
+   * @category Testing
    */
   export type Mock<T extends (...args: any[]) => any> = JestMock.Mock<T>;
 
@@ -153,6 +155,8 @@ declare module "bun:test" {
    *
    * @param label the label for the tests
    * @param fn the function that defines the tests
+   *
+   * @category Testing
    */
   export interface Describe {
     (fn: () => void): void;
@@ -337,6 +341,8 @@ declare module "bun:test" {
    * @param label the label for the test
    * @param fn the test function
    * @param options the test timeout or options
+   *
+   * @category Testing
    */
   export interface Test {
     (
