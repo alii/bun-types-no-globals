@@ -1,4 +1,4 @@
-// Type definitions for bun 1.0.4
+// Type definitions for bun 1.0.5
 // Project: https://github.com/oven-sh/bun
 // Definitions by: Jarred Sumner <https://github.com/Jarred-Sumner>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
@@ -13491,7 +13491,7 @@ declare module "bun" {
     loader: Loader;
   }
 
-  type OnLoadResult = OnLoadResultSourceCode | OnLoadResultObject;
+  type OnLoadResult = OnLoadResultSourceCode | OnLoadResultObject | undefined;
   type OnLoadCallback = (
     args: OnLoadArgs,
   ) => OnLoadResult | Promise<OnLoadResult>;
@@ -16852,6 +16852,16 @@ declare module "bun:test" {
      */
     toBeWithin(start: number, end: number): void;
     /**
+     * Asserts that a value is equal to the expected string, ignoring any whitespace.
+     *
+     * @example
+     * expect(" foo ").toEqualIgnoringWhitespace("foo");
+     * expect("bar").toEqualIgnoringWhitespace(" bar ");
+     *
+     * @param expected the expected string
+     */
+    toEqualIgnoringWhitespace(expected: string): void;
+    /**
      * Asserts that a value is a `symbol`.
      *
      * @example
@@ -18894,6 +18904,8 @@ declare module "ws" {
     WebSocket?: U | undefined;
   }
 
+  interface ServerOption extends WebSocketServerOptions {}
+
   interface AddressInfo {
     address: string;
     family: string;
@@ -19037,6 +19049,8 @@ declare module "ws" {
       listener: (...args: any[]) => void,
     ): this;
   }
+
+  var Server: typeof WebSocketServer;
 }
 declare module "async_hooks" {
   /**
