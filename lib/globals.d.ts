@@ -1,29 +1,30 @@
 declare module "bun" {
   namespace __internal {
-    type NodeWorkerThreadsWorker = import("worker_threads").Worker;
+    type NodeWorkerThreadsWorker = import("node:worker_threads").Worker;
     type LibWorkerOrBunWorker = Bun.__internal.UseLibDomIfAvailable<"Worker", Bun.Worker>;
 
-    type NodePerfHooksPerformance = import("perf_hooks").Performance;
     type LibPerformanceOrNodePerfHooksPerformance = Bun.__internal.UseLibDomIfAvailable<
       "Performance",
-      NodePerfHooksPerformance
+      import("perf_hooks").Performance
     >;
 
     type NodeCryptoWebcryptoSubtleCrypto = import("crypto").webcrypto.SubtleCrypto;
     type NodeCryptoWebcryptoCryptoKey = import("crypto").webcrypto.CryptoKey;
 
-    type LibEmptyOrNodeUtilTextEncoder = LibDomIsLoaded extends true ? {} : import("util").TextEncoder;
+    type LibEmptyOrBunWebSocket = LibDomIsLoaded extends true ? {} : Bun.WebSocket;
 
-    type LibEmptyOrNodeUtilTextDecoder = LibDomIsLoaded extends true ? {} : import("util").TextDecoder;
+    type LibEmptyOrNodeUtilTextEncoder = LibDomIsLoaded extends true ? {} : import("node:util").TextEncoder;
 
-    type LibEmptyOrNodeReadableStream<T> = LibDomIsLoaded extends true ? {} : import("stream/web").ReadableStream<T>;
+    type LibEmptyOrNodeUtilTextDecoder = LibDomIsLoaded extends true ? {} : import("node:util").TextDecoder;
 
-    type LibEmptyOrNodeWritableStream<T> = LibDomIsLoaded extends true ? {} : import("stream/web").WritableStream<T>;
-
-    type LibEmptyOrNodeTransformStream<I, O> = LibDomIsLoaded extends true
+    type LibEmptyOrNodeReadableStream<T> = LibDomIsLoaded extends true
       ? {}
-      : import("stream/web").TransformStream<I, O>;
+      : import("node:stream/web").ReadableStream<T>;
 
-    type LibEmptyOrNodeMessagePort = LibDomIsLoaded extends true ? {} : import("worker_threads").MessagePort;
+    type LibEmptyOrNodeWritableStream<T> = LibDomIsLoaded extends true
+      ? {}
+      : import("node:stream/web").WritableStream<T>;
+
+    type LibEmptyOrNodeMessagePort = LibDomIsLoaded extends true ? {} : import("node:worker_threads").MessagePort;
   }
 }
