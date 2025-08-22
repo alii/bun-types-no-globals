@@ -17,6 +17,7 @@
 /// <reference path="./overrides.d.ts" />
 /// <reference path="./deprecated.d.ts" />
 /// <reference path="./redis.d.ts" />
+/// <reference path="./shell.d.ts" />
 /// <reference path="./bun.ns.d.ts" />
 // @ts-ignore Must disable this so it doesn't conflict with the DOM onmessage type, but still
 // allows us to declare our own globals that Node's types can "see" and not conflict with
