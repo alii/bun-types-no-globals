@@ -22,11 +22,6 @@ declare module "stream/web" {
     blob(): Promise<Blob>;
   }
 }
-declare module "url" {
-  interface URLSearchParams {
-    toJSON(): Record<string, string>;
-  }
-}
 declare module "fs/promises" {
   function exists(path: Bun.PathLike): Promise<boolean>;
 }
