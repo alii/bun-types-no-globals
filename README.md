@@ -55,7 +55,7 @@ declare global {
 }
 ```
 
-<small>I wrote a little about the above syntax [on my blog about Ambient Declarations](https://alistair.sh/ambient-declarations).</small>
+I wrote a little about the above syntax [on my blog about Ambient Declarations](https://alistair.sh/ambient-declarations).
 
 ## Usage
 
