@@ -42,6 +42,21 @@ export function createPlugin(): BunPlugin | WebpackPlugin | VitePlugin {
 }
 ```
 
+### 🛠️ [Re-\]declaring the Bun namespace
+
+Sometimes you'll still want the Bun namespace to globally exist - this is most helpful in situations where actually including a runtime import from `bun` is more inconvenient than using the Bun namespace itself. You can tell TypeScript about the namespace by including this code somewhere in your program:
+
+```ts
+// File could be called `bun.ns.d.ts` for example
+import * as BunModule from 'bun';
+
+declare global {
+	export import Bun = BunModule;
+}
+```
+
+<small>I wrote a little about the above syntax [on my blog about Ambient Declarations](https://alistair.sh/ambient-declarations).</small>
+
 ## Usage
 
 We recommend you require these types with a triple slash reference anywhere in your program
