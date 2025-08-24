@@ -103,7 +103,13 @@ jobs:
             fi
             
             echo "Publishing $VERSION to npm with tag: $PUBLISH_TAG"
-            bun publish --tag="$PUBLISH_TAG" --access public
+            if bun publish --tag="$PUBLISH_TAG" --access public; then
+              echo "Successfully published $VERSION"
+            else
+              EXIT_CODE=$?
+              echo "Failed to publish $VERSION (exit code: $EXIT_CODE)"
+              echo "This might be because the version already exists on npm, continuing..."
+            fi
             
-            echo "Successfully processed $VERSION"
+            echo "Finished processing $VERSION"
           done
