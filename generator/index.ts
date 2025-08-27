@@ -33,6 +33,8 @@ packageJson.version = installedVersion;
 await Bun.write(packageJsonPath, JSON.stringify(packageJson, null, '\t') + '\n');
 console.log(`Updated package.json to version: ${installedVersion}`);
 
+// regenerate the dir so we dont keep files that might have been deleted
+await fsp.rm(outputDir, { recursive: true, force: true });
 await fsp.mkdir(outputDir, { recursive: true });
 
 for await (const filePath of new Bun.Glob('node_modules/bun-types/**/*.d.ts').scan({
