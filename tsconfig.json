@@ -19,5 +19,6 @@
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false
 	},
-	"include": ["node_modules", "./lib/**/*.d.ts"]
+	"include": ["./generator"],
+	"exclude": ["./node_modules", "./lib"]
 }

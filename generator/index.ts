@@ -1,7 +1,7 @@
 import { $ } from 'bun';
 import * as fsp from 'node:fs/promises';
 import * as path from 'node:path';
-import { Node, parseSync } from 'oxc-parser';
+import { type Node, parseSync } from 'oxc-parser';
 import { walk } from 'oxc-walker';
 import { tempDirWithFiles } from './fs';
 
