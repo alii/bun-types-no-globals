@@ -3,5 +3,5 @@
 // This file gets loaded by developers including the following triple slash directive:
 //
 // ```ts
-// /// <reference types="bun/test-globals" />
+// /// <reference types="bun-types/test-globals" />
 // ```
