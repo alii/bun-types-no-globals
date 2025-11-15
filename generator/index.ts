@@ -33,18 +33,17 @@ packageJson.version = installedVersion;
 await Bun.write(packageJsonPath, JSON.stringify(packageJson, null, '\t') + '\n');
 console.log(`Updated package.json to version: ${installedVersion}`);
 
-// regenerate the dir so we dont keep files that might have been deleted
 await fsp.rm(outputDir, { recursive: true, force: true });
 await fsp.mkdir(outputDir, { recursive: true });
+
+const filesToInclude = new Set<string>();
+const allFiles: string[] = [];
 
 for await (const filePath of new Bun.Glob('node_modules/bun-types/**/*.d.ts').scan({
 	cwd: tempDir.path,
 })) {
-	console.log();
-	console.log('processing', filePath);
-
+	allFiles.push(filePath);
 	const fullPath = path.join(tempDir.path, filePath);
-
 	const file = Bun.file(fullPath);
 	const ast = parseSync(file.name ?? filePath, await file.text(), { astType: 'ts' });
 
@@ -76,9 +75,42 @@ for await (const filePath of new Bun.Glob('node_modules/bun-types/**/*.d.ts').sc
 		}
 	}
 
-	if (!hasTopLevelImportsOrExports && !hasModuleDeclarations && !hasTripleSlashReferences) {
+	if (hasTopLevelImportsOrExports || hasModuleDeclarations || hasTripleSlashReferences) {
+		const relativeFromBunTypes = path.relative(
+			path.join(tempDir.path, 'node_modules/bun-types'),
+			fullPath
+		);
+		filesToInclude.add(relativeFromBunTypes);
+	}
+}
+
+for (const filePath of allFiles) {
+	console.log();
+	console.log('processing', filePath);
+
+	const fullPath = path.join(tempDir.path, filePath);
+	const relativeFromBunTypes = path.relative(
+		path.join(tempDir.path, 'node_modules/bun-types'),
+		fullPath
+	);
+
+	if (!filesToInclude.has(relativeFromBunTypes)) {
 		console.log('skipping pure global script file');
 		continue;
+	}
+
+	const file = Bun.file(fullPath);
+	const ast = parseSync(file.name ?? filePath, await file.text(), { astType: 'ts' });
+
+	let hasTripleSlashReferences = false;
+
+	if (ast.comments) {
+		for (const comment of ast.comments) {
+			if (comment.type === 'Line' && comment.value?.includes('<reference')) {
+				hasTripleSlashReferences = true;
+				break;
+			}
+		}
 	}
 
 	const outputFile = path.join(
@@ -132,8 +164,24 @@ for await (const filePath of new Bun.Glob('node_modules/bun-types/**/*.d.ts').sc
 					const line = lines[i];
 
 					if (line?.trim().startsWith('///') || line?.trim().startsWith('//')) {
-						outputLines.push(line);
-						addedLines.add(i);
+						const referenceMatch = line.match(/\/\/\/\s*<reference\s+path=["'](.+?)["']/);
+						if (referenceMatch && referenceMatch[1]) {
+							const referencedPath = referenceMatch[1];
+							const currentFileDir = path.dirname(relativeFromBunTypes);
+							const resolvedReferencePath = path.normalize(
+								path.join(currentFileDir, referencedPath)
+							);
+
+							if (filesToInclude.has(resolvedReferencePath)) {
+								outputLines.push(line);
+								addedLines.add(i);
+							} else {
+								console.log(`  skipping reference to ${referencedPath} (file not included)`);
+							}
+						} else {
+							outputLines.push(line);
+							addedLines.add(i);
+						}
 					}
 				}
 			}
@@ -154,10 +202,10 @@ for await (const filePath of new Bun.Glob('node_modules/bun-types/**/*.d.ts').sc
 			}
 
 			await fsp.writeFile(outputFile, outputLines.join('\n'));
-			console.log('filtered globals from', path.relative(tempDir.path, outputFile));
+			console.log('filtered globals from', outputFile);
 		} else {
 			await fsp.copyFile(fullPath, outputFile);
-			console.log('removed all globals from', path.relative(tempDir.path, outputFile));
+			console.log('removed all globals from', outputFile);
 		}
 	} else {
 		await fsp.copyFile(fullPath, outputFile);
