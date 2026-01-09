@@ -1,11 +1,8 @@
 declare module "bun" {
   namespace __internal {
+    type NodeCryptoWebcryptoSubtleCrypto = import("crypto").webcrypto.SubtleCrypto;
     type NodeCryptoWebcryptoCryptoKey = import("crypto").webcrypto.CryptoKey;
     type NodeCryptoWebcryptoCryptoKeyPair = import("crypto").webcrypto.CryptoKeyPair;
-
-    type LibEmptyOrNodeCryptoWebcryptoSubtleCrypto = LibDomIsLoaded extends true
-      ? {}
-      : import("crypto").webcrypto.SubtleCrypto;
 
     type LibWorkerOrBunWorker = LibDomIsLoaded extends true ? {} : Bun.Worker;
     type LibEmptyOrBunWebSocket = LibDomIsLoaded extends true ? {} : Bun.WebSocket;
@@ -17,9 +14,7 @@ declare module "bun" {
       ? {}
       : import("node:stream/web").DecompressionStream;
 
-    type LibPerformanceOrNodePerfHooksPerformance = LibDomIsLoaded extends true
-      ? {}
-      : import("node:perf_hooks").Performance;
+    type LibPerformanceOrNodePerfHooksPerformance = LibDomIsLoaded extends true ? {} : import("perf_hooks").Performance;
     type LibEmptyOrPerformanceEntry = LibDomIsLoaded extends true ? {} : import("node:perf_hooks").PerformanceEntry;
     type LibEmptyOrPerformanceMark = LibDomIsLoaded extends true ? {} : import("node:perf_hooks").PerformanceMark;
     type LibEmptyOrPerformanceMeasure = LibDomIsLoaded extends true ? {} : import("node:perf_hooks").PerformanceMeasure;

@@ -36,10 +36,10 @@ declare module "url" {
     toJSON(): Record<string, string>;
   }
 }
-declare module "node:fs/promises" {
+declare module "fs/promises" {
   function exists(path: Bun.PathLike): Promise<boolean>;
 }
-declare module "node:tls" {
+declare module "tls" {
   interface BunConnectionOptions extends Omit<ConnectionOptions, "key" | "ca" | "tls" | "cert"> {
     /**
      * Optionally override the trusted CA certificates. Default is to trust
@@ -85,18 +85,4 @@ declare module "node:tls" {
   }
 
   function connect(options: BunConnectionOptions, secureConnectListener?: () => void): TLSSocket;
-}
-declare module "console" {
-  interface Console {
-    /**
-     * Asynchronously read lines from standard input (fd 0)
-     *
-     * ```ts
-     * for await (const line of console) {
-     *   console.log(line);
-     * }
-     * ```
-     */
-    [Symbol.asyncIterator](): AsyncIterableIterator<string>;
-  }
 }
