@@ -172,7 +172,8 @@ jobs:
             echo "::endgroup::"
           done
 
+          # OIDC tokens are scoped to `npm publish`, so `npm dist-tag rm` cannot
+          # authenticate here. The stray tag is harmless; clean it up by hand.
           if [ "$USED_BACKFILL_TAG" = "true" ]; then
-            echo "Removing the temporary 'backfill' dist-tag"
-            npm dist-tag rm bun-types-no-globals backfill || echo "Could not remove it; a stray dist-tag is harmless"
+            echo "::warning::A temporary 'backfill' dist-tag was created. Remove it locally with: npm dist-tag rm bun-types-no-globals backfill"
           fi
