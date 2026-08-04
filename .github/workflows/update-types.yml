@@ -2,17 +2,8 @@ name: Update Bun Types
 
 on:
   schedule:
-    - cron: '0 0 * * *' # daily at 00:00 UTC
+    - cron: '0 0 * * *'
   workflow_dispatch:
-    inputs:
-      backfill:
-        description: 'Publish every missing version since 1.3.1, not just ones newer than package.json'
-        type: boolean
-        default: false
-      include_canary:
-        description: 'Include canary versions when backfilling (scheduled runs always include them)'
-        type: boolean
-        default: false
 
 jobs:
   update-types:
@@ -20,160 +11,49 @@ jobs:
 
     permissions:
       contents: write
-      id-token: write # required for npm OIDC trusted publishing
+      id-token: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
 
-      # npm >= 11.5.1 is required to exchange the Actions OIDC token for a
-      # short-lived npm publish token. No NPM_TOKEN secret involved.
-      - name: Upgrade npm for trusted publishing
-        run: npm install -g npm@latest
+      - run: npm install -g npm@latest
 
-      - name: Install dependencies
-        run: bun install
+      - run: bun install
 
-      - name: Publish missing versions
+      - name: Publish new versions
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BACKFILL: ${{ inputs.backfill }}
-          INCLUDE_CANARY: ${{ inputs.include_canary }}
         run: |
           set -euo pipefail
 
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          # The version currently committed to main. Anything newer than this is a
-          # forward release (commit + tag + GitHub release); anything older is a
-          # backfill (publish to npm only, leave the repo alone).
-          HEAD_VERSION=$(jq -r '.version' package.json)
-          echo "Committed version: $HEAD_VERSION"
-
-          ARGS=()
-          if [ "${BACKFILL:-false}" = "true" ]; then
-            echo "Backfill mode: considering every missing version since the baseline"
-            if [ "${INCLUDE_CANARY:-false}" = "true" ]; then
-              ARGS+=(--canary)
-            fi
-          else
-            # Scheduled/normal run: only what is newer than what we've committed,
-            # canaries included (that is the whole point of the daily job).
-            ARGS+=(--canary --from "$HEAD_VERSION")
-          fi
-
-          VERSIONS=$(bun run generator/missing-versions.ts "${ARGS[@]}")
-
-          if [ -z "$VERSIONS" ]; then
-            echo "Nothing to publish"
-            exit 0
-          fi
-
-          echo "Versions to publish:"
-          echo "$VERSIONS"
-
-          # Backfilling an old version must not drag a dist-tag backwards, so a
-          # version only claims latest/canary if it beats what the tag points at now.
-          newer() { [ "$(bun -e 'process.stdout.write(String(Bun.semver.order(process.argv[1], process.argv[2])))' "$1" "$2")" = "1" ]; }
-
-          NPM_LATEST=$(npm view bun-types-no-globals dist-tags.latest 2>/dev/null || echo '0.0.0')
-          NPM_CANARY=$(npm view bun-types-no-globals dist-tags.canary 2>/dev/null || echo '0.0.0')
-          USED_BACKFILL_TAG=false
-
-          for VERSION in $VERSIONS; do
-            echo ""
-            echo "::group::Processing $VERSION"
-
-            if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              IS_STABLE=true
-              if newer "$VERSION" "$NPM_LATEST"; then PUBLISH_TAG="latest"; else PUBLISH_TAG="backfill"; fi
-            else
-              IS_STABLE=false
-              if newer "$VERSION" "$NPM_CANARY"; then PUBLISH_TAG="canary"; else PUBLISH_TAG="backfill"; fi
-            fi
-            if [ "$PUBLISH_TAG" = "backfill" ]; then USED_BACKFILL_TAG=true; fi
+          for VERSION in $(bun run generator/missing-versions.ts "$(jq -r .version package.json)"); do
+            case "$VERSION" in
+              *-*) NPM_TAG=canary; RELEASE_FLAG=--prerelease ;;
+              *)   NPM_TAG=latest; RELEASE_FLAG=--latest ;;
+            esac
 
             bun run generator/index.ts "$VERSION"
+            npm publish --tag "$NPM_TAG" --access public --provenance
 
-            IS_FORWARD_RELEASE=false
-            if [ "$(bun -e 'process.stdout.write(String(Bun.semver.order(process.argv[1], process.argv[2])))' "$VERSION" "$HEAD_VERSION")" = "1" ]; then
-              IS_FORWARD_RELEASE=true
-            fi
+            git add lib package.json
+            git commit -m "update bun types to v$VERSION [automated]"
+            git tag "v$VERSION" -m "Release v$VERSION"
+            git push origin main "v$VERSION"
 
-            # Publish first. If npm rejects it there is no point committing or
-            # tagging, and a failure here must fail the job rather than be swallowed.
-            echo "Publishing $VERSION to npm with tag: $PUBLISH_TAG"
-            if ! PUBLISH_OUTPUT=$(npm publish --tag "$PUBLISH_TAG" --access public --provenance 2>&1); then
-              echo "$PUBLISH_OUTPUT"
-              if echo "$PUBLISH_OUTPUT" | grep -qiE 'EPUBLISHCONFLICT|cannot publish over|previously published'; then
-                echo "$VERSION already exists on npm, skipping"
-                git checkout -- . || true
-                echo "::endgroup::"
-                continue
-              fi
-              echo "::error::Failed to publish $VERSION"
-              exit 1
-            fi
-            echo "$PUBLISH_OUTPUT"
-            echo "Successfully published $VERSION"
-
-            if [ "$PUBLISH_TAG" = "latest" ]; then NPM_LATEST="$VERSION"; fi
-            if [ "$PUBLISH_TAG" = "canary" ]; then NPM_CANARY="$VERSION"; fi
-
-            if [ "$IS_FORWARD_RELEASE" != "true" ]; then
-              echo "$VERSION is older than $HEAD_VERSION (backfill) - not touching the repo"
-              git checkout -- .
-              echo "::endgroup::"
-              continue
-            fi
-
-            git add lib/ package.json
-            if git commit -m "update bun types to v$VERSION [automated]"; then
-              git push
-            else
-              echo "No repo changes for $VERSION"
-            fi
-
-            HEAD_VERSION="$VERSION"
-
-            if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-              echo "Tag v$VERSION already exists"
-            else
-              git tag "v$VERSION" -m "Release v$VERSION"
-              git push origin "v$VERSION"
-            fi
-
-            if gh release view "v$VERSION" >/dev/null 2>&1; then
-              echo "Release v$VERSION already exists"
-            elif [ "$PUBLISH_TAG" = "latest" ]; then
-              gh release create "v$VERSION" \
-                --title "v$VERSION" \
-                --notes "Automated release of bun-types-no-globals v$VERSION" \
-                --latest
-            else
-              gh release create "v$VERSION" \
-                --title "v$VERSION" \
-                --notes "Automated pre-release of bun-types-no-globals v$VERSION" \
-                --prerelease
-            fi
-
-            echo "::endgroup::"
+            gh release create "v$VERSION" \
+              --title "v$VERSION" \
+              --notes "Automated release of bun-types-no-globals v$VERSION" \
+              "$RELEASE_FLAG"
           done
-
-          # OIDC tokens are scoped to `npm publish`, so `npm dist-tag rm` cannot
-          # authenticate here. The stray tag is harmless; clean it up by hand.
-          if [ "$USED_BACKFILL_TAG" = "true" ]; then
-            echo "::warning::A temporary 'backfill' dist-tag was created. Remove it locally with: npm dist-tag rm bun-types-no-globals backfill"
-          fi
