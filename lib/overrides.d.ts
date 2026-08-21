@@ -48,21 +48,20 @@ declare module "node:fs/promises" {
 declare module "node:tls" {
   interface BunConnectionOptions extends Omit<ConnectionOptions, "key" | "ca" | "tls" | "cert"> {
     /**
-     * Optionally override the trusted CA certificates. Default is to trust
-     * the well-known CAs curated by Mozilla. Mozilla's CAs are completely
-     * replaced when CAs are explicitly specified using this option.
+     * Override the trusted CA certificates. The default is the list of
+     * well-known CAs curated by Mozilla; setting this option replaces
+     * that list entirely.
      */
     ca?: string | Buffer | NodeJS.TypedArray | Bun.BunFile | Array<string | Buffer | Bun.BunFile> | undefined;
     /**
-     *  Cert chains in PEM format. One cert chain should be provided per
-     *  private key. Each cert chain should consist of the PEM formatted
-     *  certificate for a provided private key, followed by the PEM
-     *  formatted intermediate certificates (if any), in order, and not
-     *  including the root CA (the root CA must be pre-known to the peer,
-     *  see ca). When providing multiple cert chains, they do not have to
-     *  be in the same order as their private keys in key. If the
-     *  intermediate certificates are not provided, the peer will not be
-     *  able to validate the certificate, and the handshake will fail.
+     * Cert chains in PEM format. Provide one cert chain per private key.
+     * Each chain consists of the PEM certificate for its private key,
+     * followed by the PEM intermediate certificates (if any) in order,
+     * not including the root CA (the root CA must be pre-known to the
+     * peer, see `ca`). Multiple cert chains do not have to be in the
+     * same order as their private keys in `key`. Without the
+     * intermediate certificates, the peer cannot validate the
+     * certificate and the handshake fails.
      */
     cert?:
       | string
@@ -72,14 +71,13 @@ declare module "node:tls" {
       | Array<string | Buffer | NodeJS.TypedArray | Bun.BunFile>
       | undefined;
     /**
-     * Private keys in PEM format. PEM allows the option of private keys
-     * being encrypted. Encrypted keys will be decrypted with
-     * options.passphrase. Multiple keys using different algorithms can be
-     * provided either as an array of unencrypted key strings or buffers,
-     * or an array of objects in the form {pem: <string|buffer>[,
-     * passphrase: <string>]}. The object form can only occur in an array.
-     * object.passphrase is optional. Encrypted keys will be decrypted with
-     * object.passphrase if provided, or options.passphrase if it is not.
+     * Private keys in PEM format. PEM keys may be encrypted. Multiple
+     * keys using different algorithms can be provided either as an array
+     * of unencrypted key strings or buffers, or as an array of objects in
+     * the form `{pem: <string|buffer>[, passphrase: <string>]}`. The
+     * object form can only occur in an array, and `object.passphrase` is
+     * optional. Encrypted keys are decrypted with `object.passphrase` if
+     * provided, otherwise with `options.passphrase`.
      */
     key?:
       | string
@@ -95,8 +93,9 @@ declare module "node:tls" {
 declare module "console" {
   interface Console {
     /**
-     * Asynchronously read lines from standard input (fd 0)
+     * Asynchronously reads lines from standard input (fd 0)
      *
+     * @example
      * ```ts
      * for await (const line of console) {
      *   console.log(line);

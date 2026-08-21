@@ -10,7 +10,7 @@ declare module "bun" {
     | "ws:connect";
 
   /**
-   * The event names for the dev server
+   * Event names accepted by `import.meta.hot.on()` and `import.meta.hot.off()`
    */
   type HMREvent = `bun:${HMREventNames}` | (string & {});
 }
