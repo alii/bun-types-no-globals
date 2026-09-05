@@ -1,6 +1,6 @@
 {
 	"name": "bun-types-no-globals",
-	"version": "1.4.1-canary.20260904T141235",
+	"version": "1.4.1",
 	"main": "./generator/index.ts",
 	"types": "./lib/index.d.ts",
 	"description": "TypeScript type definitions for Bun without global types pollution",
