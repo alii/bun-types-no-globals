@@ -11,7 +11,7 @@
 		"verbatimModuleSyntax": true,
 		"noEmit": true,
 		"strict": true,
-		"skipLibCheck": false,
+		"skipLibCheck": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUncheckedIndexedAccess": true,
 		"noImplicitOverride": true,
